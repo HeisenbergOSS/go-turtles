@@ -205,7 +205,7 @@ Resources:
       ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
       ContainerDefinitions:
         - Name: turtles-app
-          Image: REPLACE_WITH_YOUR_DOCKER_IMAGE
+          Image: <account-id>.dkr.ecr.us-east-1.amazonaws.com/turtles-app:latest
           Essential: true
           PortMappings:
             - ContainerPort: 8080
