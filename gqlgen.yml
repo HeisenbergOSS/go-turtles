@@ -1,0 +1,22 @@
+# gqlgen.yml
+
+# Where is our schema?
+schema:
+  - graph/schema.graphqls
+
+# Where should the generated server code go?
+exec:
+  layout: follow-schema
+  dir: graph
+  package: graph
+
+# Where should the generated models go?
+model:
+  filename: graph/model/models_gen.go
+  package: model
+
+# Tell gqlgen about our resolver implementation
+resolver:
+  layout: follow-schema
+  dir: graph
+  package: graph

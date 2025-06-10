@@ -1,0 +1,26 @@
+# This type represents a single piece of information (a "turtle").
+# It includes the core data and its relationships to other facts.
+type Fact {
+  id: ID!
+  title: String!
+  content: String!
+  sourceURL: String
+
+  # The parent fact (the "turtle" this one sits on). Can be null for top-level facts.
+  parent: Fact
+
+  # The child facts that are supported by this one.
+  children: [Fact!]!
+
+  createdAt: String!
+  updatedAt: String!
+}
+
+# The root of all queries.
+type Query {
+  # Fetches a single fact by its unique ID.
+  fact(id: ID!): Fact
+
+  # Fetches all top-level facts (those with no parent). This is the main entrypoint for the app.
+  topLevelFacts: [Fact!]!
+}
