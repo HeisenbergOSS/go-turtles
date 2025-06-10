@@ -29,7 +29,6 @@ func main() {
 		port = defaultPort
 	}
 
-	// --- Database Connection ---
 	db, err := gorm.Open(postgres.Open(DSN), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
@@ -38,20 +37,10 @@ func main() {
 	// Auto-migrate the schema
 	log.Println("Running database migrations...")
 	db.AutoMigrate(&data.Fact{})
-
-	// Set the query generated object to use our DB connection
-	query.SetDefault(db)
 	log.Println("Database migration complete.")
-
-	// Seed the database with sample data for testing
-	if err := seedDatabase(db); err != nil {
-		log.Fatalf("could not seed database: %v", err)
-	}
 
 	router := chi.NewRouter()
 
-	// Update the resolver to include our database connection
-	// This makes the DB available to all our GraphQL resolvers
 	resolver := &graph.Resolver{DB: db}
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 

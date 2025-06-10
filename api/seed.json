@@ -1,0 +1,33 @@
+{
+  "facts": [
+    {
+      "title": "MMR Vaccine is Highly Effective",
+      "content": "The MMR vaccine is about 97% effective at preventing measles and 88% effective at preventing mumps.",
+      "sourceURL": "https://www.cdc.gov/vaccines/vpd/mmr/public/index.html",
+      "children": [
+        {
+          "title": "Measles Efficacy Study",
+          "content": "A 2019 meta-analysis of 50 studies confirmed the high efficacy of two doses of the MMR vaccine against measles.",
+          "sourceURL": "https://www.cochrane.org/CD004407/hsg_measles-mumps-and-rubella-mmr-vaccine-preventing-measles-mumps-and-rubella-children"
+        },
+        {
+          "title": "Mumps Efficacy Study",
+          "content": "Effectiveness against mumps is documented to be slightly lower than measles but still provides significant community protection.",
+          "sourceURL": "https://www.cdc.gov/vaccines/vpd/mumps/hcp/about.html",
+          "children": [
+            {
+              "title": "Mumps Outbreak Data",
+              "content": "Data from recent outbreaks show that vaccinated individuals have a significantly lower risk of complications.",
+              "sourceURL": "https://www.cdc.gov/mumps/outbreaks.html"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Vaccines Do Not Cause Autism",
+      "content": "Numerous large-scale studies have found no link between any vaccine and the likelihood of developing autism.",
+      "sourceURL": "https://www.cdc.gov/vaccinesafety/concerns/autism.html"
+    }
+  ]
+}
