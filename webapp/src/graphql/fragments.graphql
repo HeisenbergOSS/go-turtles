@@ -1,0 +1,34 @@
+fragment FactDetailsL5 on Fact {
+  id
+  title
+  content
+  sourceURL
+}
+
+fragment FactDetailsL4 on Fact {
+  ...FactDetailsL5
+  children {
+    ...FactDetailsL5
+  }
+}
+
+fragment FactDetailsL3 on Fact {
+  ...FactDetailsL4
+  children {
+    ...FactDetailsL4
+  }
+}
+
+fragment FactDetailsL2 on Fact {
+  ...FactDetailsL3
+  children {
+    ...FactDetailsL3
+  }
+}
+
+fragment FactDetails on Fact {
+  ...FactDetailsL2
+  children {
+    ...FactDetailsL2
+  }
+}

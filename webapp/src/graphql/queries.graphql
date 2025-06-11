@@ -1,0 +1,14 @@
+# This line tells the GraphQL parser to include all definitions from fragments.graphql
+#import "./fragments.graphql"
+
+query GetTopLevelFacts {
+  topLevelFacts {
+    ...FactDetails
+  }
+}
+
+query SearchFacts($term: String!) {
+  search(term: $term) {
+    ...FactDetails
+  }
+}
