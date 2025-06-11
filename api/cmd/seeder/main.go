@@ -50,6 +50,36 @@ func main() {
 		if err := tx.Unscoped().Where("1 = 1").Delete(&data.Fact{}).Error; err != nil {
 			return err
 		}
+		fmt.Println("Setting up full-text search...")
+
+		if err := tx.Exec(`ALTER TABLE facts ADD COLUMN IF NOT EXISTS search_vector tsvector`).Error; err != nil {
+			return err
+		}
+		// 2. Create an index on this column for performance.
+		if err := tx.Exec(`CREATE INDEX IF NOT EXISTS facts_search_idx ON facts USING gin(search_vector)`).Error; err != nil {
+			return err
+		}
+		// 3. Create a trigger that automatically updates the search_vector when a row is changed.
+		if err := tx.Exec(`
+            CREATE OR REPLACE FUNCTION facts_search_trigger() RETURNS trigger AS $$
+            begin
+                new.search_vector :=
+                    setweight(to_tsvector('pg_catalog.english', coalesce(new.title,'')), 'A') ||
+                    setweight(to_tsvector('pg_catalog.english', coalesce(new.content,'')), 'B');
+                return new;
+            end
+            $$ LANGUAGE plpgsql;
+        `).Error; err != nil {
+			return err
+		}
+		// 4. Attach the trigger to our table.
+		if err := tx.Exec(`
+            DROP TRIGGER IF EXISTS tsvectorupdate ON facts;
+            CREATE TRIGGER tsvectorupdate BEFORE INSERT OR UPDATE
+            ON facts FOR EACH ROW EXECUTE PROCEDURE facts_search_trigger();
+        `).Error; err != nil {
+			return err
+		}
 
 		fmt.Println("Seeding new data...")
 		// Recursively create facts from the parsed JSON

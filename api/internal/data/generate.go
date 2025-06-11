@@ -5,6 +5,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/heisenbergoss/go-turtles/internal/data" // Change to your module path
 	"gorm.io/driver/postgres"
@@ -14,7 +15,7 @@ import (
 
 // The Database Connection String (DSN)
 // It uses the credentials from our docker-compose.yml file
-const DSN = "host=localhost user=postgres dbname=turtles_db port=5432 sslmode=disable"
+const defaultDSN = "host=localhost user=postgres dbname=turtles_db port=5432 sslmode=disable"
 
 // FactQuerier defines the custom queries we want for our Fact model.
 type FactQuerier interface {
@@ -23,8 +24,13 @@ type FactQuerier interface {
 }
 
 func main() {
+	dsn := os.Getenv("DSN")
+	if dsn == "" {
+		dsn = defaultDSN
+	}
+
 	// Connect to the database
-	db, err := gorm.Open(postgres.Open(DSN), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}

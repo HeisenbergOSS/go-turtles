@@ -11,6 +11,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/heisenbergoss/go-turtles/graph" // Change to your module path
 	"github.com/heisenbergoss/go-turtles/internal/data"
 	"github.com/heisenbergoss/go-turtles/internal/data/query"
@@ -20,7 +21,7 @@ import (
 
 const (
 	defaultPort = "8080"
-	DSN         = "host=localhost user=postgres dbname=turtles_db port=5432 sslmode=disable"
+	defaultDSN  = "host=localhost user=postgres dbname=turtles_db port=5432 sslmode=disable"
 )
 
 func main() {
@@ -29,7 +30,12 @@ func main() {
 		port = defaultPort
 	}
 
-	db, err := gorm.Open(postgres.Open(DSN), &gorm.Config{})
+	dsn := os.Getenv("DSN")
+	if dsn == "" {
+		dsn = defaultDSN
+	}
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
@@ -40,6 +46,13 @@ func main() {
 	log.Println("Database migration complete.")
 
 	router := chi.NewRouter()
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowCredentials: true,
+		MaxAge:           300, // Maximum value not ignored by any browser
+	}))
 
 	resolver := &graph.Resolver{DB: db}
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))

@@ -54,6 +54,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Fact          func(childComplexity int, id string) int
+		Search        func(childComplexity int, term string) int
 		TopLevelFacts func(childComplexity int) int
 	}
 }
@@ -144,6 +145,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Fact(childComplexity, args["id"].(string)), true
+
+	case "Query.search":
+		if e.complexity.Query.Search == nil {
+			break
+		}
+
+		args, err := ec.field_Query_search_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Search(childComplexity, args["term"].(string)), true
 
 	case "Query.topLevelFacts":
 		if e.complexity.Query.TopLevelFacts == nil {

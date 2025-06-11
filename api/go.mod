@@ -5,7 +5,7 @@ go 1.24.3
 require (
 	github.com/99designs/gqlgen v0.17.74
 	github.com/go-chi/chi/v5 v5.0.12
-	github.com/google/uuid v1.6.0
+	github.com/go-chi/cors v1.2.1
 	github.com/vektah/gqlparser/v2 v2.5.27
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gen v0.3.27
@@ -18,6 +18,7 @@ require (
 	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/go-sql-driver/mysql v1.9.2 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

@@ -23,4 +23,5 @@ type Query {
 
   # Fetches all top-level facts (those with no parent). This is the main entrypoint for the app.
   topLevelFacts: [Fact!]!
+  search(term: String!): [Fact!]!
 }

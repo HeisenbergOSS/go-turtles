@@ -7,6 +7,7 @@ package graph
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	"github.com/heisenbergoss/go-turtles/graph/model"
 	"github.com/heisenbergoss/go-turtles/internal/data"
@@ -50,48 +51,38 @@ func (r *queryResolver) TopLevelFacts(ctx context.Context) ([]*model.Fact, error
 	return toGraphQLFactList(facts), nil
 }
 
+// Search is the resolver for the search field.
+func (r *queryResolver) Search(ctx context.Context, term string) ([]*model.Fact, error) {
+	var dbFacts []*data.Fact
+
+	// We need to format the search term for to_tsquery, which expects terms to be
+	// joined by & (AND), | (OR), or ! (NOT). We'll join words with &.
+	// This turns "measles mumps" into "measles & mumps".
+	queryTerm := strings.Join(strings.Fields(strings.TrimSpace(term)), " & ")
+
+	// sql query to search facts using full-text search.
+	// It selects all columns from the 'facts' table.
+	// Filters rows where the 'search_vector' matches the provided query string
+	// (using 'english' text search configuration) and 'deleted_at' is NULL.
+	// Results are ordered by the rank of the match in descending order.
+	sql := `
+		SELECT * FROM facts
+		WHERE
+			search_vector @@ to_tsquery('english', ?)
+			AND deleted_at IS NULL
+		ORDER BY
+			ts_rank(search_vector, to_tsquery('english', ?)) DESC
+	`
+
+	err := r.DB.WithContext(ctx).Raw(sql, queryTerm, queryTerm).Scan(&dbFacts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return toGraphQLFactList(dbFacts), nil
+}
+
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
 type queryResolver struct{ *Resolver }
-
-// toGraphQLFact is a helper function to convert our GORM database model to a GraphQL model.
-func toGraphQLFact(f *data.Fact) *model.Fact {
-	if f == nil {
-		return nil
-	}
-	return &model.Fact{
-		ID:        strconv.Itoa(int(f.ID)), // Convert uint ID to string for GraphQL
-		Title:     f.Title,
-		Content:   f.Content,
-		SourceURL: &f.SourceURL,
-		Parent:    toGraphQLFact(f.Parent),       // Recursively convert the parent
-		Children:  toGraphQLFactList(f.Children), // Convert the list of children
-		CreatedAt: f.CreatedAt.String(),
-		UpdatedAt: f.UpdatedAt.String(),
-	}
-}
-
-// toGraphQLFactList is a helper for converting a slice of database facts.
-func toGraphQLFactList(facts []*data.Fact) []*model.Fact {
-	out := make([]*model.Fact, len(facts))
-	for i, f := range facts {
-		out[i] = toGraphQLFact(f)
-	}
-	return out
-}
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-/*
-	func (r *queryResolver) Ping(ctx context.Context) (*model.PingResponse, error) {
-	return &model.PingResponse{
-		Message:   "Pong!",
-		Timestamp: time.Now().Format(time.RFC3339),
-	}, nil
-}
-*/
