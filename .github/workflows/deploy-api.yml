@@ -21,6 +21,11 @@ jobs:
     name: Build and Deploy
     runs-on: ubuntu-latest
 
+    # Add the repository name to the environment variables
+    env:
+      GAR_REPOSITORY: turtles-repo
+      IMAGE_NAME: turtles-api
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -39,8 +44,7 @@ jobs:
       - name: Configure Docker
         run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
 
-      # This step builds the Docker image for the required amd64 platform
-      # and pushes it to Google Artifact Registry.
+      # This step builds the Docker image and pushes it to Google Artifact Registry
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
@@ -48,7 +52,8 @@ jobs:
           file: ./api/Dockerfile
           push: true
           platforms: linux/amd64
-          tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:latest
+          # CORRECTED a 'tags' line to use the GAR_REPOSITORY variable
+          tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
 
       # This final step deploys the newly pushed image to Cloud Run
       - name: Deploy to Cloud Run
@@ -56,8 +61,7 @@ jobs:
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
-          # Point to the image we just pushed
-          image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:latest
-          # Set environment variables using the secret we created
+          # CORRECTED the 'image' path to match the one we pushed
+          image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
           env_vars: |
             DSN=${{ secrets.PROD_DB_DSN }}
