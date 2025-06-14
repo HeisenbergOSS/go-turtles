@@ -32,7 +32,8 @@ func main() {
 
 	dsn := os.Getenv("DSN")
 	if dsn == "" {
-		dsn = defaultDSN
+		dsn = "host=localhost user=myuser password=mypassword dbname=turtles_db port=5432 sslmode=disable"
+		log.Println("DSN environment variable not set, using default for local development.")
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
