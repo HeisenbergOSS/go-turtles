@@ -1,32 +1,26 @@
-import { useLazyQuery, useQuery } from "@apollo/client";
-import { FactCard } from "./components/FactCard";
-// Import the generated query document
-import { GetTopLevelFactsDocument, SearchFactsDocument } from "./gql/graphql";
 import { useState } from "react";
+import { FactCard } from "./components/FactCard";
+// Import the generated hooks. The data from these hooks is already fully typed.
+import {
+  useGetTopLevelFactsQuery,
+  useSearchFactsLazyQuery,
+} from "./graphql/generated";
 import { Search, X } from "lucide-react";
 
 function App() {
-  // --- STATE MANAGEMENT ---
-  // State for the search input field
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  // State to determine if we are showing search results or the default list
-  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
-  // --- DATA FETCHING HOOKS ---
-  // Query for the default view of top-level facts
+  // Use the generated hooks.
   const {
     loading: topLevelLoading,
     error: topLevelError,
     data: topLevelData,
-  } = useQuery(GetTopLevelFactsDocument);
-
-  // Lazy query for searching, which we can trigger manually
+  } = useGetTopLevelFactsQuery();
   const [
     executeSearch,
     { loading: searchLoading, error: searchError, data: searchData },
-  ] = useLazyQuery(SearchFactsDocument);
-
-  // --- EVENT HANDLERS ---
+  ] = useSearchFactsLazyQuery();
 
   const handleSearchSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -41,7 +35,6 @@ function App() {
     setIsSearching(false);
   };
 
-  // --- RENDER LOGIC ---
   const renderContent = () => {
     if (isSearching) {
       if (searchLoading)
@@ -54,7 +47,7 @@ function App() {
             Error searching: {searchError.message}
           </p>
         );
-      if (searchData?.search.length === 0)
+      if (!searchData || searchData.search.length === 0)
         return (
           <p className="text-slate-400 text-center">
             No results found for "{searchTerm}".
@@ -63,7 +56,8 @@ function App() {
 
       return (
         <div className="space-y-6">
-          {searchData?.search.map((fact) => (
+          {/* The `fact` object here is a plain object; `fact.id` exists directly. */}
+          {searchData.search.map((fact) => (
             <FactCard key={fact.id} fact={fact} />
           ))}
         </div>
@@ -97,7 +91,6 @@ function App() {
           Turtles All The Way Down
         </h1>
 
-        {/* Search Form */}
         <form onSubmit={handleSearchSubmit} className="mb-12 flex gap-2">
           <input
             type="text"
@@ -125,7 +118,6 @@ function App() {
           </button>
         </form>
 
-        {/* Content Area */}
         {renderContent()}
       </div>
     </div>

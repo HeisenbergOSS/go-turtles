@@ -1,4 +1,3 @@
-# This line tells the GraphQL parser to include all definitions from fragments.graphql
 #import "./fragments.graphql"
 
 query GetTopLevelFacts {
@@ -10,5 +9,14 @@ query GetTopLevelFacts {
 query SearchFacts($term: String!) {
   search(term: $term) {
     ...FactDetails
+  }
+}
+
+# This is a new query to fetch the children for a specific parent ID.
+query GetFactChildren($id: ID!) {
+  fact(id: $id) {
+    children {
+      ...FactDetails
+    }
   }
 }
