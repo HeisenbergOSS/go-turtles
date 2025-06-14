@@ -1,0 +1,70 @@
+# .github/workflows/ci.yml
+
+name: Continuous Integration
+
+# This workflow runs on every pull request that targets the 'main' branch
+on:
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  # --- Backend Testing Job ---
+  test-backend:
+    name: Test Go Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      # Run the backend integration tests. The '-race' flag checks for race conditions.
+      - name: Run Go Tests
+        run: go test -v -race ./...
+        working-directory: ./api
+
+  # --- Frontend Testing Job ---
+  test-frontend:
+    name: Test React Frontend
+    runs-on: ubuntu-latest
+    # We need the node/pnpm setup for this job
+    defaults:
+      run:
+        working-directory: ./webapp
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node.js with pnpm Caching
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: webapp/pnpm-lock.yaml
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Run Component Tests
+        run: pnpm test:component
+
+      - name: Install Playwright Browsers
+        run: pnpm playwright install --with-deps
+
+      # For E2E tests in CI, we run them against the LIVE, deployed backend.
+      # This is a common pattern that tests the frontend against a real production-like environment.
+      - name: Run E2E Tests
+        env:
+          VITE_API_URL: ${{ secrets.PROD_API_URL }}
+        run: pnpm test:e2e
