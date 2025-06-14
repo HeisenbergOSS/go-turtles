@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VITE_API_URL: ${{secrets.VITE_API_URL}}
+    defaults:
+      run:
+        working-directory: ./webapp
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,13 +20,10 @@ jobs:
           node-version: lts/*
       - name: Install dependencies
         run: pnpm install
-        working-directory: ./webapp
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
-        working-directory: ./webapp
       - name: Run Playwright tests
         run: pnpm test:e2e
-        working-directory: ./webapp
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
