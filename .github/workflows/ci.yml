@@ -25,25 +25,6 @@ jobs:
   test-frontend-e2e:
     name: Frontend E2E Tests
     runs-on: ubuntu-latest
-    # This 'services' block starts a PostgreSQL container alongside our job
-    services:
-      postgres:
-        image: postgres:15-alpine
-        # Set credentials for the temporary database
-        env:
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpassword
-          POSTGRES_DB: testdb
-        # Expose the port so our Go API can connect to it
-        ports:
-          - 5432:5432
-        # Health check to ensure the database is ready before proceeding
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     defaults:
       run:
         working-directory: ./webapp
@@ -60,9 +41,6 @@ jobs:
 
       # --- Run Backend and Seeder ---
       - name: Run API Server in Background
-        env:
-          # This DSN points to the 'postgres' service container started above
-          DSN: "host=localhost user=testuser password=testpassword dbname=testdb port=5432 sslmode=disable"
         run: |
           # Wait a moment for the DB service to be fully available
           sleep 5
