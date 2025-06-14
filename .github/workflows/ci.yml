@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # The backend test job remains the same and can run in parallel
   test-backend:
     name: Test Go Backend
     runs-on: ubuntu-latest
@@ -16,34 +15,28 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.22"
       - name: Run Go Tests
         run: go test -v -race ./...
         working-directory: ./api
 
-  # This job is now completely self-contained
   test-frontend-e2e:
     name: Frontend E2E Tests
     runs-on: ubuntu-latest
-    # This 'services' block starts a PostgreSQL container alongside our job
     services:
       postgres:
         image: postgres:15-alpine
-        # Set credentials for the temporary database
         env:
           POSTGRES_USER: testuser
           POSTGRES_PASSWORD: testpassword
           POSTGRES_DB: testdb
-        # Expose the port so our Go API can connect to it
         ports:
           - 5432:5432
-        # Health check to ensure the database is ready before proceeding
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     defaults:
       run:
         working-directory: ./webapp
@@ -51,32 +44,31 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      # --- Setup Backend Environment ---
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.22"
 
-      # --- Run Backend and Seeder ---
-      - name: Run API Server in Background
+      # This step now runs migrate, then seed, then the server.
+      - name: Setup and Run Backend
         env:
-          # This DSN points to the 'postgres' service container started above
           DSN: "host=localhost user=testuser password=testpassword dbname=testdb port=5432 sslmode=disable"
         run: |
           # Wait a moment for the DB service to be fully available
           sleep 5
-          # Run the seeder against the temporary database
+          # 1. Run the migration to create tables
+          echo "Running Database Migration..."
+          go run ./cmd/migrate/main.go
+          # 2. Run the seeder to populate the tables
           echo "Seeding temporary database..."
           go run ./cmd/seeder/main.go
-          # Run the API server in the background (&) so the workflow can continue
+          # 3. Run the API server in the background
           echo "Starting API server..."
           go run ./cmd/server/server.go &
           # Wait for the API server to start up
           sleep 5
         working-directory: ./api
 
-      # --- Setup Frontend Environment ---
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -94,9 +86,7 @@ jobs:
       - name: Install Playwright Browsers
         run: pnpm playwright install --with-deps
 
-      # --- Run E2E Tests ---
       - name: Run Playwright E2E Tests
         env:
-          # The webapp now talks to the API running on localhost within the same runner
           VITE_API_URL: http://localhost:8080/query
         run: pnpm test:e2e
