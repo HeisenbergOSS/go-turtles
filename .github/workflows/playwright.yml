@@ -8,6 +8,8 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    env:
+      - VITE_API_URL: ${{ secrets.VITE_API_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,7 +22,7 @@ jobs:
         run: npx playwright install --with-deps
         working-directory: ./webapp
       - name: Run Playwright tests
-        run: npx playwright test
+        run: pnpm test:e2e
         working-directory: ./webapp
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
