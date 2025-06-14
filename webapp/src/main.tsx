@@ -11,7 +11,7 @@ import { ApolloClient, InMemoryCache, ApolloProvider } from "@apollo/client";
 // 2. Create the Apollo Client instance
 const client = new ApolloClient({
   // The URI of our Go GraphQL API.
-  uri: "http://localhost:8080/query",
+  uri: import.meta.env.VITE_API_URL || "http://localhost:8080/graphql",
   // The cache is used to store results, making our app feel faster.
   cache: new InMemoryCache(),
 });
