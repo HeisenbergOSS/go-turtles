@@ -6,6 +6,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -14,6 +15,21 @@ import (
 	"github.com/heisenbergoss/go-turtles/internal/data/query"
 	"gorm.io/gorm"
 )
+
+// CreateFact is the resolver for the createFact field.
+func (r *mutationResolver) CreateFact(ctx context.Context, input model.CreateFactInput) (*model.Fact, error) {
+	panic(fmt.Errorf("not implemented: CreateFact - createFact"))
+}
+
+// UpdateFact is the resolver for the updateFact field.
+func (r *mutationResolver) UpdateFact(ctx context.Context, id string, input model.UpdateFactInput) (*model.Fact, error) {
+	panic(fmt.Errorf("not implemented: UpdateFact - updateFact"))
+}
+
+// DeleteFact is the resolver for the deleteFact field.
+func (r *mutationResolver) DeleteFact(ctx context.Context, id string) (*model.Fact, error) {
+	panic(fmt.Errorf("not implemented: DeleteFact - deleteFact"))
+}
 
 // Fact is the resolver for the fact field.
 func (r *queryResolver) Fact(ctx context.Context, id string) (*model.Fact, error) {
@@ -82,7 +98,11 @@ func (r *queryResolver) Search(ctx context.Context, term string) ([]*model.Fact,
 	return toGraphQLFactList(dbFacts), nil
 }
 
+// Mutation returns MutationResolver implementation.
+func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

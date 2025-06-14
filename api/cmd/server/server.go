@@ -3,7 +3,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"os"
@@ -14,7 +13,6 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/heisenbergoss/go-turtles/graph" // Change to your module path
 	"github.com/heisenbergoss/go-turtles/internal/data"
-	"github.com/heisenbergoss/go-turtles/internal/data/query"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -23,6 +21,35 @@ const (
 	defaultPort = "8080"
 	defaultDSN  = "host=localhost user=postgres dbname=turtles_db port=5432 sslmode=disable"
 )
+
+func apiKeyAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Read the required API key from an environment variable.
+		requiredKey := os.Getenv("ADMIN_API_KEY")
+		if requiredKey == "" {
+			// If the key is not set on the server, block all requests for safety.
+			log.Println("Warning: ADMIN_API_KEY is not set. All mutation requests will be blocked.")
+			http.Error(w, "Internal Server Configuration Error", http.StatusInternalServerError)
+			return
+		}
+
+		// Look for the API key in the 'X-API-KEY' header of the request.
+		providedKey := r.Header.Get("X-API-KEY")
+
+		// For simplicity in this project, we will check the key on all POST requests
+		// to the /query endpoint, as this is how mutations are sent.
+		if r.Method == "POST" {
+			if providedKey != requiredKey {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return // Block the request
+			}
+		}
+
+		// If the key is correct or it's not a mutation (e.g., a GET for the playground),
+		// allow the request to proceed to the next handler.
+		next.ServeHTTP(w, r)
+	})
+}
 
 func main() {
 	port := os.Getenv("PORT")
@@ -61,54 +88,10 @@ func main() {
 		w.Write([]byte("Server is alive!"))
 	})
 
-	router.Handle("/query", srv)
+	router.Handle("/query", apiKeyAuth(srv))
 	router.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
 	log.Printf("GraphQL playground available at http://localhost:%s/playground", port)
 
 	log.Printf("Server listening on http://localhost:%s/", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
-}
-
-func seedDatabase(db *gorm.DB) error {
-	q := query.Use(db)
-
-	// Check if data already exists to prevent seeding multiple times
-	count, err := q.Fact.WithContext(context.Background()).Count()
-	if err != nil {
-		return err
-	}
-	if count > 0 {
-		log.Println("Database already seeded.")
-		return nil
-	}
-
-	log.Println("Seeding database...")
-
-	// Level 1 "Turtle"
-	fact1 := &data.Fact{
-		Title:     "MMR Vaccine is Highly Effective",
-		Content:   "The MMR vaccine is about 97% effective at preventing measles and 88% effective at preventing mumps.",
-		SourceURL: "https://www.cdc.gov/vaccines/vpd/mmr/public/index.html",
-	}
-
-	if err := q.Fact.WithContext(context.Background()).Create(fact1); err != nil {
-		return err
-	}
-
-	// Level 2 "Turtles" (Children of Fact 1)
-	fact2 := &data.Fact{
-		ParentID:  &fact1.ID, // Link to parent
-		Title:     "Measles Efficacy Study",
-		Content:   "A 2019 meta-analysis of 50 studies confirmed the high efficacy of two doses of the MMR vaccine against measles.",
-		SourceURL: "https://www.cochrane.org/CD004407/hsg_measles-mumps-and-rubella-mmr-vaccine-preventing-measles-mumps-and-rubella-children",
-	}
-
-	fact3 := &data.Fact{
-		ParentID:  &fact1.ID, // Link to parent
-		Title:     "Mumps Efficacy Study",
-		Content:   "Effectiveness against mumps is documented to be slightly lower than measles but still provides significant community protection.",
-		SourceURL: "https://www.cdc.gov/vaccines/vpd/mumps/hcp/about.html",
-	}
-
-	return q.Fact.WithContext(context.Background()).Create(fact2, fact3)
 }

@@ -12,6 +12,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/heisenbergoss/go-turtles/graph/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -34,6 +35,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Mutation() MutationResolver
 	Query() QueryResolver
 }
 
@@ -50,6 +52,12 @@ type ComplexityRoot struct {
 		SourceURL func(childComplexity int) int
 		Title     func(childComplexity int) int
 		UpdatedAt func(childComplexity int) int
+	}
+
+	Mutation struct {
+		CreateFact func(childComplexity int, input model.CreateFactInput) int
+		DeleteFact func(childComplexity int, id string) int
+		UpdateFact func(childComplexity int, id string, input model.UpdateFactInput) int
 	}
 
 	Query struct {
@@ -134,6 +142,42 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Fact.UpdatedAt(childComplexity), true
 
+	case "Mutation.createFact":
+		if e.complexity.Mutation.CreateFact == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createFact_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateFact(childComplexity, args["input"].(model.CreateFactInput)), true
+
+	case "Mutation.deleteFact":
+		if e.complexity.Mutation.DeleteFact == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteFact_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteFact(childComplexity, args["id"].(string)), true
+
+	case "Mutation.updateFact":
+		if e.complexity.Mutation.UpdateFact == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateFact_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateFact(childComplexity, args["id"].(string), args["input"].(model.UpdateFactInput)), true
+
 	case "Query.fact":
 		if e.complexity.Query.Fact == nil {
 			break
@@ -172,7 +216,10 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
-	inputUnmarshalMap := graphql.BuildUnmarshalerMap()
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputCreateFactInput,
+		ec.unmarshalInputUpdateFactInput,
+	)
 	first := true
 
 	switch opCtx.Operation.Operation {
@@ -205,6 +252,21 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			}
 
 			return &response
+		}
+	case ast.Mutation:
+		return func(ctx context.Context) *graphql.Response {
+			if !first {
+				return nil
+			}
+			first = false
+			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
+			data := ec._Mutation(ctx, opCtx.Operation.SelectionSet)
+			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
 		}
 
 	default:
