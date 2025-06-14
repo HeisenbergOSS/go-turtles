@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/heisenbergoss/go-turtles/internal/data"
@@ -10,8 +11,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// SeedFact defines the structure for unmarshalling the JSON data.
-// It must match the structure of our seed.json file.
 type SeedFact struct {
 	Title     string     `json:"title"`
 	Content   string     `json:"content"`
@@ -19,13 +18,17 @@ type SeedFact struct {
 	Children  []SeedFact `json:"children"`
 }
 
-const DSN = "host=localhost user=postgres dbname=turtles_db port=5432 sslmode=disable"
-
 func main() {
 	fmt.Println("Starting database seeder...")
 
-	// 1. Connect to the database
-	db, err := gorm.Open(postgres.Open(DSN), &gorm.Config{})
+	// Fall back to a default value if the variable is not set.
+	dsn := os.Getenv("DSN")
+	if dsn == "" {
+		dsn = "host=localhost user=myuser password=mypassword dbname=turtles_db port=5432 sslmode=disable"
+		log.Println("DSN environment variable not set, using default for local development.")
+	}
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(fmt.Sprintf("Failed to connect to database: %v", err))
 	}

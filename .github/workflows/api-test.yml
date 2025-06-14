@@ -1,0 +1,22 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  # The backend test job remains the same and can run in parallel
+  test-backend:
+    name: Test Go Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Run Go Tests
+        run: go test -v -race ./...
+        working-directory: ./api
