@@ -11,8 +11,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// SeedFact defines the structure for unmarshalling the JSON data.
-// It must match the structure of our seed.json file.
 type SeedFact struct {
 	Title     string     `json:"title"`
 	Content   string     `json:"content"`
@@ -30,7 +28,6 @@ func main() {
 		log.Println("DSN environment variable not set, using default for local development.")
 	}
 
-	// 1. Connect to the database
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(fmt.Sprintf("Failed to connect to database: %v", err))
