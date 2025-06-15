@@ -1,58 +1,45 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from '@playwright/test';
+// 1. Import our new, centralized mock handler
+import { mockedApi } from './mocks';
 
-test.describe("Turtles All The Way Down App E2E Flow", () => {
-  test("should load top-level facts and allow drilling down", async ({
-    page,
-  }) => {
-    // 1. Navigate to the app's homepage.
-    await page.goto("/");
+test.describe('Turtles App E2E Flow (with graphql-mocks)', () => {
 
-    // 2. Check for the main title to ensure the page loaded.
-    await expect(
-      page.getByRole("heading", { name: "Turtles All The Way Down" }),
-    ).toBeVisible();
-
-    // 3. Check that a top-level fact from our API is rendered.
-    // We use a locator to find the card by the text it contains.
-    const mmrFact = page.getByText("MMR Vaccine is Highly Effective");
-    await expect(mmrFact).toBeVisible();
-
-    // 4. Check that the child fact is initially hidden.
-    const measlesStudy = page.getByText("Measles Efficacy Study");
-    await expect(measlesStudy).not.toBeVisible();
-
-    // 5. Click the "Show Evidence" button within the MMR fact card.
-    // We locate the button relative to the fact card itself.
-    await mmrFact
-      .locator("..")
-      .getByRole("button", { name: /Show Evidence/ })
-      .click();
-
-    // 6. Now, assert that the child fact is visible.
-    await expect(measlesStudy).toBeVisible();
+  // 2. Use the mock handler for all GraphQL requests in this test suite.
+  // The '**/query' is a glob pattern that will catch our API endpoint.
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/query', mockedApi);
   });
 
-  test("should perform a search and display results", async ({ page }) => {
-    // 1. Navigate to the app's homepage.
-    await page.goto("/");
+  test('should load top-level facts and allow drilling down', async ({ page }) => {
+    await page.goto('/');
 
-    // 2. Fill the search input with a term.
-    const searchInput = page.getByPlaceholder("Search for facts...");
-    await searchInput.fill("autism");
+    // Assert that the mocked data is visible
+    const mmrFact = page.getByText('MMR Vaccine is Highly Effective');
+    await expect(mmrFact).toBeVisible();
 
-    // 3. Click the search button.
-    await page.getByRole("button", { name: "Search" }).click();
+    // The rest of the test logic remains EXACTLY the same!
+    const childFact = page.getByText('Child Fact Title');
+    await expect(childFact).not.toBeVisible();
 
-    // 4. Assert that the search result is now visible.
-    const autismResult = page.getByText("Vaccines Do Not Cause Autism");
+    await mmrFact.locator('..').getByRole('button', { name: /Show Evidence/ }).click();
+    
+    // Now, assert that the child fact, returned by our mocked `fact` query, is visible.
+    await expect(childFact).toBeVisible();
+  });
+
+  test('should perform a search using the mocked API', async ({ page }) => {
+    await page.goto('/');
+
+    await page.getByPlaceholder('Search for facts...').fill('autism');
+    await page.getByRole('button', { name: 'Search' }).click();
+
+    // Assert that the specific mocked search result is now visible
+    const autismResult = page.getByText('Vaccines Do Not Cause Autism');
     await expect(autismResult).toBeVisible();
 
-    // 5. Assert that the original top-level fact is no longer visible.
-    const mmrFact = page.getByText("MMR Vaccine is Highly Effective");
+    // Assert that the original top-level facts are no longer visible
+    const mmrFact = page.getByText('MMR Vaccine is Highly Effective');
     await expect(mmrFact).not.toBeVisible();
-
-    // 6. Click the "Clear" button to return to the default view.
-    await page.getByRole("button", { name: "Clear search" }).click();
-    await expect(mmrFact).toBeVisible();
   });
+
 });

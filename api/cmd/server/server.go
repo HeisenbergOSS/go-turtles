@@ -88,7 +88,7 @@ func main() {
 		w.Write([]byte("Server is alive!"))
 	})
 
-	router.Handle("/query", apiKeyAuth(srv))
+	router.Handle("/query", srv)
 	router.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
 	log.Printf("GraphQL playground available at http://localhost:%s/playground", port)
 

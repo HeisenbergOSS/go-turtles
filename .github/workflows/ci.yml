@@ -1,0 +1,54 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  test-backend:
+    name: Test Go Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Run Go Tests
+        run: go test -v -race ./...
+        working-directory: ./api
+
+  # This job is now much simpler and faster
+  test-frontend-e2e:
+    name: Frontend E2E Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./webapp
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Set up Node.js with pnpm Caching
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+          cache-dependency-path: webapp/pnpm-lock.yaml
+
+      - name: Install Frontend Dependencies
+        run: pnpm install
+
+      - name: Install Playwright Browsers
+        run: pnpm playwright install --with-deps
+
+      - name: Run Playwright E2E Tests
+        # We no longer need to set a production API URL secret, as all calls are mocked.
+        run: pnpm test:e2e
