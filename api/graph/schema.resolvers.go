@@ -6,6 +6,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -14,6 +15,98 @@ import (
 	"github.com/heisenbergoss/go-turtles/internal/data/query"
 	"gorm.io/gorm"
 )
+
+// CreateFact is the resolver for the createFact field.
+func (r *mutationResolver) CreateFact(ctx context.Context, input model.CreateFactInput) (*model.Fact, error) {
+	// 1. Create a GORM model from our GraphQL input
+	fact := data.Fact{
+		Title:     input.Title,
+		Content:   input.Content,
+		SourceURL: *input.SourceURL, // Dereference the pointer
+	}
+
+	// 2. Handle the optional parent ID
+	if input.ParentID != nil {
+		// The GraphQL ID is a string, so we need to convert it to an integer (uint)
+		parentID, err := strconv.ParseUint(*input.ParentID, 10, 32)
+		if err != nil {
+			return nil, fmt.Errorf("invalid parent ID: %w", err)
+		}
+		uParentID := uint(parentID)
+		fact.ParentID = &uParentID
+	}
+
+	// 3. Use GORM to create the new record in the database
+	if err := r.DB.Create(&fact).Error; err != nil {
+		return nil, err
+	}
+
+	// 4. Return the newly created fact, converted to the GraphQL model type
+	return toGraphQLFact(&fact), nil
+}
+
+// UpdateFact is the resolver for the updateFact field.
+func (r *mutationResolver) UpdateFact(ctx context.Context, id string, input model.UpdateFactInput) (*model.Fact, error) {
+	// 1. Convert the string ID to an integer
+	factID, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("invalid fact ID: %w", err)
+	}
+
+	// 2. First, find the existing fact in the database
+	var existingFact data.Fact
+	if err := r.DB.First(&existingFact, factID).Error; err != nil {
+		return nil, fmt.Errorf("fact with ID %s not found: %w", id, err)
+	}
+
+	// 3. Update the fields only if they were provided in the input
+	if input.Title != nil {
+		existingFact.Title = *input.Title
+	}
+	if input.Content != nil {
+		existingFact.Content = *input.Content
+	}
+	if input.SourceURL != nil {
+		existingFact.SourceURL = *input.SourceURL
+	}
+	if input.ParentID != nil {
+		parentID, err := strconv.ParseUint(*input.ParentID, 10, 32)
+		if err != nil {
+			return nil, fmt.Errorf("invalid parent ID: %w", err)
+		}
+		uParentID := uint(parentID)
+		existingFact.ParentID = &uParentID
+	}
+
+	// 4. Save the updated record
+	if err := r.DB.Save(&existingFact).Error; err != nil {
+		return nil, err
+	}
+
+	return toGraphQLFact(&existingFact), nil
+}
+
+// DeleteFact is the resolver for the deleteFact field.
+func (r *mutationResolver) DeleteFact(ctx context.Context, id string) (*model.Fact, error) {
+	factID, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("invalid fact ID: %w", err)
+	}
+
+	// 1. Find the fact to ensure it exists before deleting
+	var fact data.Fact
+	if err := r.DB.First(&fact, factID).Error; err != nil {
+		return nil, fmt.Errorf("fact with ID %s not found: %w", id, err)
+	}
+
+	// 2. Delete the record (GORM will perform a soft delete)
+	if err := r.DB.Delete(&fact).Error; err != nil {
+		return nil, err
+	}
+
+	// 3. Return the object that was just deleted
+	return toGraphQLFact(&fact), nil
+}
 
 // Fact is the resolver for the fact field.
 func (r *queryResolver) Fact(ctx context.Context, id string) (*model.Fact, error) {
@@ -82,7 +175,13 @@ func (r *queryResolver) Search(ctx context.Context, term string) ([]*model.Fact,
 	return toGraphQLFactList(dbFacts), nil
 }
 
+// Mutation returns MutationResolver implementation.
+func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
-type queryResolver struct{ *Resolver }
+type (
+	mutationResolver struct{ *Resolver }
+	queryResolver    struct{ *Resolver }
+)

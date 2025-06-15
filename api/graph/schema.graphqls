@@ -16,6 +16,30 @@ type Fact {
   updatedAt: String!
 }
 
+# Input type for creating a new fact.
+# 'parentID' is optional for creating top-level facts.
+input CreateFactInput {
+  title: String!
+  content: String!
+  sourceURL: String
+  parentID: ID
+}
+
+# Input type for updating an existing fact. All fields are optional.
+input UpdateFactInput {
+  title: String
+  content: String
+  sourceURL: String
+  parentID: ID
+}
+
+# The root of all data-changing operations.
+type Mutation {
+  createFact(input: CreateFactInput!): Fact!
+  updateFact(id: ID!, input: UpdateFactInput!): Fact!
+  deleteFact(id: ID!): Fact!
+}
+
 # The root of all queries.
 type Query {
   # Fetches a single fact by its unique ID.

@@ -2,6 +2,13 @@
 
 package model
 
+type CreateFactInput struct {
+	Title     string  `json:"title"`
+	Content   string  `json:"content"`
+	SourceURL *string `json:"sourceURL,omitempty"`
+	ParentID  *string `json:"parentID,omitempty"`
+}
+
 type Fact struct {
 	ID        string  `json:"id"`
 	Title     string  `json:"title"`
@@ -13,5 +20,15 @@ type Fact struct {
 	UpdatedAt string  `json:"updatedAt"`
 }
 
+type Mutation struct {
+}
+
 type Query struct {
+}
+
+type UpdateFactInput struct {
+	Title     *string `json:"title,omitempty"`
+	Content   *string `json:"content,omitempty"`
+	SourceURL *string `json:"sourceURL,omitempty"`
+	ParentID  *string `json:"parentID,omitempty"`
 }
